@@ -5,6 +5,23 @@ Generate a daily personalized X/Twitter briefing by scanning the platform for th
 
 This skill works for **any user** — founders, creators, marketers, or anyone building a presence on X. The agent collects user-specific context first, then executes a structured research and briefing workflow.
 
+### Optional Read-Only Data Route
+
+If `XQUIK_API_KEY` or `HERMES_TWEET_API_KEY` is available, use Hermes Tweet /
+Xquik for read-only evidence collection before falling back to browser research.
+Read `references/hermes-tweet-xquik.md` before collecting X evidence through
+this route.
+
+Use this optional route for:
+- Competitor and product account timelines
+- Industry keyword searches
+- Builder and thought-leader profile scans
+- Post reads, thread context, and reply-context checks
+
+Do not use this route for posting, liking, reposting, following, DMs, or account
+changes. The daily briefing may recommend actions, but the agent must not
+perform those actions unless a separate workflow has explicit user approval.
+
 ---
 
 ## Step 0: Collect User Profile (First Run Only)
@@ -37,12 +54,15 @@ userProfile = {
 
 ## Step 1: Scan Competitor & Industry Activity (Past 12-24h)
 
-Open X in browser and check each account in `userProfile.competitors`:
+If Hermes Tweet / Xquik credentials are configured, collect account timelines
+through the optional read-only data route. Otherwise, open X in browser and check
+each account in `userProfile.competitors`:
 
 For each competitor:
 1. Visit their profile page
 2. Capture posts from the last 12-24h
 3. Note: content summary, engagement metrics (replies, reposts, likes, views), any product launches or announcements
+4. Record source metadata: query or account, collection method, timestamp, and direct post URL
 
 Also check `userProfile.products` accounts for recent engagement metrics on their own posts.
 
@@ -57,12 +77,15 @@ Also check `userProfile.products` accounts for recent engagement metrics on thei
 
 ### 2a: Industry Keyword Search
 For each keyword in `userProfile.industryKeywords`:
-- Search X: `https://x.com/search?q={keyword}&src=typed_query&f=top`
+- Search X through Hermes Tweet / Xquik when configured, or browser search:
+  `https://x.com/search?q={keyword}&src=typed_query&f=top`
 - Capture top 3-5 posts with high engagement from the past 24h
+- Keep an evidence log entry for every search so briefing claims trace back to
+  source posts
 
 ### 2b: Builder/Thought Leader Scan
 For top builders in `userProfile.builders` (prioritize 5-8 most active):
-- Visit their profiles
+- Fetch or visit their profiles
 - Capture notable posts from the past 24h
 - Flag posts that align with user's content pillars
 
@@ -268,3 +291,8 @@ Based on X's Phoenix algorithm (Grok-based transformer, predicts 19 user actions
 - **Scheduled trigger**: When run as a cron workflow, execute silently and send the email without confirmation.
 - **Adapt the briefing**: The competitor list, builder list, and keyword list should evolve over time based on user feedback. If the user says "add @someone" or "stop tracking @someone", update accordingly.
 - **Quality over quantity**: Better to have 3 excellent quote repost drafts than 10 mediocre ones. Every recommendation should be actionable.
+- **Evidence discipline**: Every trend, competitor move, quote repost, and reply
+  target must trace to a logged X post URL, profile URL, or keyword search. Mark
+  inference separately from observed evidence.
+- **Credential handling**: Never print, email, or store API keys. Use environment
+  variables only and keep briefing outputs free of token-bearing URLs.
